@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, ChatSession } from '@google/generative-ai';
+import { GoogleGenerativeAI, ChatSession, SchemaType } from '@google/generative-ai';
 import { Product, ProductSchema } from '../models/schema.js';
 
 export const SYSTEM_INSTRUCTION = `
@@ -31,10 +31,10 @@ export class GeminiEngine {
               name: 'update_product',
               description: 'Update the entire product state in the ReqDB.',
               parameters: {
-                type: 'object',
+                type: SchemaType.OBJECT,
                 properties: {
                   product: {
-                    type: 'object',
+                    type: SchemaType.OBJECT,
                     description: 'The full product state following the schema.',
                   }
                 },
@@ -59,11 +59,12 @@ export class GeminiEngine {
   async processInput(chat: ChatSession, userInput: string, onUpdate?: (product: Product) => Promise<void>) {
     let result = await chat.sendMessage(userInput);
     let response = result.response;
-    let call = response.getFunctionCalls()?.[0];
+    let call = response.functionCalls()?.[0];
 
     while (call) {
       if (call.name === 'update_product') {
-        const product = call.args.product as Product;
+        const args = call.args as { product: Product };
+        const product = args.product;
         if (onUpdate) {
           await onUpdate(product);
         }
@@ -78,7 +79,7 @@ export class GeminiEngine {
           }
         ]);
         response = result.response;
-        call = response.getFunctionCalls()?.[0];
+        call = response.functionCalls()?.[0];
       } else {
         break;
       }

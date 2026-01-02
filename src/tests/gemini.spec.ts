@@ -11,6 +11,11 @@ vi.mock('@google/generative-ai', () => {
         };
       }
     },
+    SchemaType: {
+      OBJECT: 'object',
+      STRING: 'string',
+      ARRAY: 'array',
+    }
   };
 });
 
@@ -28,7 +33,7 @@ describe('GeminiEngine', () => {
       sendMessage: vi.fn().mockResolvedValue({
         response: {
           text: () => 'Hello, I am your Product Architect.',
-          getFunctionCalls: () => [],
+          functionCalls: () => [],
         },
       }),
     };
@@ -46,7 +51,7 @@ describe('GeminiEngine', () => {
         .mockResolvedValueOnce({
           response: {
             text: () => '',
-            getFunctionCalls: () => [{
+            functionCalls: () => [{
               name: 'update_product',
               args: { product: mockProduct }
             }],
@@ -55,7 +60,7 @@ describe('GeminiEngine', () => {
         .mockResolvedValueOnce({
           response: {
             text: () => 'Product updated.',
-            getFunctionCalls: () => [],
+            functionCalls: () => [],
           },
         }),
     };
