@@ -50,6 +50,20 @@ describe('ProductRepository', () => {
     expect(retrieved?.name).toBe('Updated Name');
   });
 
+  it('should save and retrieve chat history', async () => {
+    const productId = await repo.saveProduct(mockProduct);
+    const messages = [
+      { role: 'user', parts: [{ text: 'Hello' }] },
+      { role: 'model', parts: [{ text: 'Hi there!' }] }
+    ];
+
+    await repo.saveChatMessage(productId, messages[0].role, messages[0].parts);
+    await repo.saveChatMessage(productId, messages[1].role, messages[1].parts);
+
+    const history = await repo.getChatHistory(productId);
+    expect(history).toEqual(messages);
+  });
+
   it('should throw error for invalid product', async () => {
     const invalidProduct = { ...mockProduct, status: 'Invalid' } as any;
     await expect(repo.saveProduct(invalidProduct)).rejects.toThrow();

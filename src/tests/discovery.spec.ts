@@ -14,6 +14,8 @@ describe('DiscoveryManager', () => {
       saveProduct: vi.fn().mockResolvedValue(1),
       updateProduct: vi.fn().mockResolvedValue(undefined),
       getProduct: vi.fn().mockResolvedValue({ name: 'Test' }),
+      saveChatMessage: vi.fn().mockResolvedValue(undefined),
+      getChatHistory: vi.fn().mockResolvedValue([]),
     };
     mockGemini = {
       startChat: vi.fn().mockResolvedValue({}),

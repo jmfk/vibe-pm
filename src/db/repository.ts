@@ -15,8 +15,37 @@ export class ProductRepository {
       CREATE TABLE IF NOT EXISTS products (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         data TEXT NOT NULL
-      )
+      );
+      CREATE TABLE IF NOT EXISTS chat_history (
+        product_id INTEGER,
+        role TEXT NOT NULL,
+        parts TEXT NOT NULL,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(product_id) REFERENCES products(id)
+      );
     `);
+  }
+
+  async saveChatMessage(productId: number, role: string, parts: any[]): Promise<void> {
+    if (!this.db) throw new Error('DB not initialized');
+    await this.db.run(
+      'INSERT INTO chat_history (product_id, role, parts) VALUES (?, ?, ?)',
+      productId,
+      role,
+      JSON.stringify(parts)
+    );
+  }
+
+  async getChatHistory(productId: number): Promise<any[]> {
+    if (!this.db) throw new Error('DB not initialized');
+    const rows = await this.db.all(
+      'SELECT role, parts FROM chat_history WHERE product_id = ? ORDER BY timestamp ASC',
+      productId
+    );
+    return rows.map(row => ({
+      role: row.role,
+      parts: JSON.parse(row.parts)
+    }));
   }
 
   async saveProduct(product: Product): Promise<number> {

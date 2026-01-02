@@ -84,6 +84,9 @@ export class DiscoveryManager {
       throw new Error('Session not started');
     }
 
+    // Save user message to history
+    await this.repo.saveChatMessage(this.productId, 'user', [{ text }]);
+
     this.setState('thinking');
     const generator = this.gemini.processInputStreaming(
       this.chat,
@@ -105,16 +108,22 @@ export class DiscoveryManager {
       this.voice.streamTTS(chunk);
     }
 
+    const responseText = fullResponse.trim();
+    // Save assistant response to history
+    await this.repo.saveChatMessage(this.productId, 'model', [{ text: responseText }]);
+
     this.voice.sendEndOfStream();
-    return fullResponse.trim();
+    return responseText;
   }
 
   async loadSession(productId: number) {
     const product = await this.repo.getProduct(productId);
     if (!product) throw new Error('Product not found');
     
+    const history = await this.repo.getChatHistory(productId);
+    
     this.productId = productId;
-    this.chat = await this.gemini.startChat();
+    this.chat = await this.gemini.startChat(history);
     
     const resumeMessage = `Welcome back. We are working on ${product.name}. Where should we pick up?`;
     this.voice.streamTTS(resumeMessage);
