@@ -1,6 +1,8 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterAll } from 'vitest';
 import { Exporter } from '../export/exporter.js';
 import { Product } from '../models/schema.js';
+import fs from 'fs';
+import path from 'path';
 
 describe('Exporter', () => {
   const exporter = new Exporter();
@@ -37,5 +39,25 @@ describe('Exporter', () => {
     expect(yml).toContain('name: Vibe PM');
     expect(yml).toContain('priority: P0');
   });
-});
 
+  it('should save synced exports', async () => {
+    const testDir = './test-exports';
+    if (!fs.existsSync(testDir)) {
+      fs.mkdirSync(testDir);
+    }
+    const { mdPath, yamlPath } = await exporter.saveSyncedExports(mockProduct, testDir);
+    expect(fs.existsSync(mdPath)).toBe(true);
+    expect(fs.existsSync(yamlPath)).toBe(true);
+    
+    // Clean up
+    fs.unlinkSync(mdPath);
+    fs.unlinkSync(yamlPath);
+  });
+
+  afterAll(() => {
+    const testDir = './test-exports';
+    if (fs.existsSync(testDir)) {
+      fs.rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+});

@@ -1,5 +1,7 @@
 import { Product } from '../models/schema.js';
 import yaml from 'js-yaml';
+import fs from 'fs';
+import path from 'path';
 
 export class Exporter {
   exportToMarkdown(product: Product): string {
@@ -42,5 +44,18 @@ ${product.success_metrics.map(m => `- ${m}`).join('\n')}
   exportToYAML(product: Product): string {
     return yaml.dump(product);
   }
-}
 
+  async saveSyncedExports(product: Product, baseDir: string = '.'): Promise<{ mdPath: string; yamlPath: string }> {
+    const md = this.exportToMarkdown(product);
+    const yml = this.exportToYAML(product);
+    
+    const safeName = product.name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const mdPath = path.join(baseDir, `PRD_${safeName}.md`);
+    const yamlPath = path.join(baseDir, `spec_${safeName}.yaml`);
+
+    fs.writeFileSync(mdPath, md);
+    fs.writeFileSync(yamlPath, yml);
+
+    return { mdPath, yamlPath };
+  }
+}

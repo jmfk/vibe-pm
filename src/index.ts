@@ -54,9 +54,8 @@ async function main() {
           // Export on exit
           const product = await repo.getProduct(1); // Simplification: get ID 1
           if (product) {
-            fs.writeFileSync('PRD.md', exporter.exportToMarkdown(product));
-            fs.writeFileSync('spec.yaml', exporter.exportToYAML(product));
-            console.log('PRD.md and spec.yaml generated.');
+            const { mdPath, yamlPath } = await exporter.saveSyncedExports(product);
+            console.log(`${mdPath} and ${yamlPath} generated.`);
           }
           console.log('Goodbye!');
           process.exit(0);
