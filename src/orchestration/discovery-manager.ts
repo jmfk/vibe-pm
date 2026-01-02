@@ -91,6 +91,10 @@ export class DiscoveryManager {
       async (updatedProduct: Product) => {
         if (this.productId !== null) {
           await this.repo.updateProduct(this.productId, updatedProduct);
+          if (updatedProduct.status === 'Completed') {
+            console.log('\n[System]: Product discovery marked as Completed.');
+            this.voice.streamTTS('Great! I have all the information I need to finalize the product requirements.');
+          }
         }
       }
     );

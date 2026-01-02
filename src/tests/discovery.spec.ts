@@ -81,6 +81,18 @@ describe('DiscoveryManager', () => {
     expect(mockRepo.updateProduct).toHaveBeenCalledWith(1, { name: 'Updated Product' });
   });
 
+  it('should detect when product status is Completed', async () => {
+    await manager.startNewSession('My App');
+    
+    mockGemini.processInputStreaming.mockImplementation(async function* (chat: any, text: string, onUpdate: any) {
+      await onUpdate({ name: 'Final Product', status: 'Completed' });
+      yield 'All done!';
+    });
+
+    await manager.processUserText('Finish it');
+    expect(mockVoice.streamTTS).toHaveBeenCalledWith('Great! I have all the information I need to finalize the product requirements.');
+  });
+
   it('should load an existing session', async () => {
     const resumeMessage = await manager.loadSession(1);
     expect(mockRepo.getProduct).toHaveBeenCalledWith(1);
