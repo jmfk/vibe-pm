@@ -56,6 +56,54 @@ export class GeminiEngine {
     });
   }
 
+  async *processInputStreaming(chat: ChatSession, userInput: string, onUpdate?: (product: Product) => Promise<void>) {
+    const result = await chat.sendMessageStream(userInput);
+    let fullText = '';
+    let currentSentence = '';
+
+    for await (const chunk of result.stream) {
+      const chunkText = chunk.text();
+      fullText += chunkText;
+      currentSentence += chunkText;
+
+      // Split by sentence boundaries but keep the punctuation
+      const sentenceEndRegex = /[.!?]\s+/;
+      let match;
+      while ((match = sentenceEndRegex.exec(currentSentence)) !== null) {
+        const sentence = currentSentence.slice(0, match.index + match[0].length).trim();
+        if (sentence) {
+          yield sentence;
+        }
+        currentSentence = currentSentence.slice(match.index + match[0].length);
+      }
+    }
+
+    // Yield any remaining text
+    if (currentSentence.trim()) {
+      yield currentSentence.trim();
+    }
+
+    // Handle function calls if any (Gemini streaming might still produce function calls at the end or in between)
+    const response = await result.response;
+    let call = response.functionCalls()?.[0];
+
+    while (call) {
+      if (call.name === 'update_product') {
+        const args = call.args as { product: Product };
+        const product = args.product;
+        if (onUpdate) {
+          await onUpdate(product);
+        }
+        
+        // Function responses in streaming are a bit more complex, but for now 
+        // we'll follow a similar pattern to the non-streaming version if needed.
+        // However, usually we just want the text output for the user.
+        break; 
+      }
+      break;
+    }
+  }
+
   async processInput(chat: ChatSession, userInput: string, onUpdate?: (product: Product) => Promise<void>) {
     let result = await chat.sendMessage(userInput);
     let response = result.response;
