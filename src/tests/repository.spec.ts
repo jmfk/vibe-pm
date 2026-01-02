@@ -29,7 +29,8 @@ describe('ProductRepository', () => {
       functional: [
         { id: 'REQ-001', title: 'Feature 1', description: 'Desc 1', priority: 'P0' }
       ],
-      non_functional: []
+      non_functional: [],
+      ui_ux: []
     },
     technical_constraints: [],
     success_metrics: []

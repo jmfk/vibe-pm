@@ -24,6 +24,7 @@ export const ProductSchema = z.object({
   requirements: z.object({
     functional: z.array(RequirementSchema),
     non_functional: z.array(RequirementSchema),
+    ui_ux: z.array(RequirementSchema),
   }),
   technical_constraints: z.array(z.string()),
   success_metrics: z.array(z.string()),
