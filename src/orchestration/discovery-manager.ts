@@ -10,11 +10,52 @@ export class DiscoveryManager {
   private voice: VoiceService;
   private chat: ChatSession | null = null;
   private productId: number | null = null;
+  private currentState: 'listening' | 'thinking' | 'speaking' | 'idle' = 'idle';
 
   constructor(repo: ProductRepository, gemini: GeminiEngine, voice: VoiceService) {
     this.repo = repo;
     this.gemini = gemini;
     this.voice = voice;
+
+    this.setupVoiceHandlers();
+  }
+
+  private setupVoiceHandlers() {
+    this.voice.on('transcript', async (data) => {
+      if (data.isFinal) {
+        console.log(`\n[User]: ${data.text}`);
+        await this.processUserText(data.text);
+      }
+    });
+
+    this.voice.on('user-started-speaking', () => {
+      this.setState('listening');
+    });
+
+    this.voice.on('user-stopped-speaking', () => {
+      this.setState('thinking');
+    });
+
+    this.voice.on('audio', () => {
+      if (this.currentState !== 'speaking') {
+        this.setState('speaking');
+      }
+    });
+
+    this.voice.on('final', () => {
+      this.setState('idle');
+    });
+  }
+
+  private setState(state: typeof this.currentState) {
+    this.currentState = state;
+    const indicators = {
+      listening: '👂 Listening...',
+      thinking: '🤔 Thinking...',
+      speaking: '🗣️ Speaking...',
+      idle: '⚪ Idle',
+    };
+    process.stdout.write(`\r[State]: ${indicators[state]}          `);
   }
 
   async startNewSession(productName: string) {
@@ -43,7 +84,8 @@ export class DiscoveryManager {
       throw new Error('Session not started');
     }
 
-    const responseText = await this.gemini.processInput(
+    this.setState('thinking');
+    const generator = this.gemini.processInputStreaming(
       this.chat,
       text,
       async (updatedProduct: Product) => {
@@ -53,8 +95,14 @@ export class DiscoveryManager {
       }
     );
 
-    this.voice.streamTTS(responseText);
-    return responseText;
+    let fullResponse = '';
+    for await (const chunk of generator) {
+      fullResponse += chunk + ' ';
+      this.voice.streamTTS(chunk);
+    }
+
+    this.voice.sendEndOfStream();
+    return fullResponse.trim();
   }
 
   async loadSession(productId: number) {

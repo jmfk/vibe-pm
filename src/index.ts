@@ -26,6 +26,15 @@ async function main() {
   const exporter = new Exporter();
 
   console.log('--- Vibe PM: Voice-First AI Product Manager ---');
+
+  // Initialize voice connections
+  try {
+    await voice.connectTTS();
+    await voice.connectSTT();
+    console.log('Connected to ElevenLabs Voice Pipeline.');
+  } catch (error) {
+    console.error('Failed to connect to voice services:', error);
+  }
   
   rl.question('Enter product name to start (or leave empty to load latest): ', async (name) => {
     let greeting: string;
