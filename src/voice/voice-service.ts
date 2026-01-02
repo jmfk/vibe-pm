@@ -5,15 +5,48 @@ export interface VoiceConfig {
   apiKey: string;
   voiceId: string;
   modelId?: string;
+  sttModelId?: string;
 }
 
 export class VoiceService extends EventEmitter {
   private ttsWs: WebSocket | null = null;
+  private sttWs: WebSocket | null = null;
   private config: VoiceConfig;
 
   constructor(config: VoiceConfig) {
     super();
     this.config = config;
+  }
+
+  async connectSTT() {
+    const modelId = this.config.sttModelId || 'scribe_v1';
+    const url = `wss://api.elevenlabs.io/v1/speech-to-text/stream?model_id=${modelId}`;
+
+    this.sttWs = new WebSocket(url);
+
+    return new Promise((resolve, reject) => {
+      this.sttWs!.on('open', () => {
+        this.sttWs!.send(JSON.stringify({
+          xi_api_key: this.config.apiKey,
+        }));
+        resolve(true);
+      });
+
+      this.sttWs!.on('message', (data) => {
+        const message = JSON.parse(data.toString());
+        if (message.text) {
+          this.emit('transcript', {
+            text: message.text,
+            isFinal: message.is_final,
+          });
+        }
+      });
+
+      this.sttWs!.on('error', reject);
+      this.sttWs!.on('close', () => {
+        this.emit('stt-close');
+      });
+    });
   }
 
   async connectTTS() {
@@ -66,11 +99,21 @@ export class VoiceService extends EventEmitter {
     }
   }
 
-  // Placeholder for STT integration
+  // Handle user audio by streaming it to STT
   handleUserAudio(audioChunk: Buffer) {
-    // In a real implementation, this would send audio to an STT service (e.g. ElevenLabs or Deepgram)
-    // For now, we'll emit a placeholder event or the user can pipe this elsewhere
+    if (this.sttWs && this.sttWs.readyState === WebSocket.OPEN) {
+      // Send raw audio chunk to ElevenLabs STT
+      // The STT API expects binary data directly or wrapped in a JSON if metadata is needed.
+      // For streaming, we often send binary frames after the initial handshake.
+      this.sttWs.send(audioChunk);
+    }
     this.emit('user-audio', audioChunk);
+  }
+
+  sendEndOfAudio() {
+    if (this.sttWs && this.sttWs.readyState === WebSocket.OPEN) {
+      this.sttWs.send(JSON.stringify({ type: 'end_of_audio' }));
+    }
   }
 
   stopSpeaking() {

@@ -27,6 +27,55 @@ describe('VoiceService', () => {
     service = new VoiceService(config);
   });
 
+  it('should connect to ElevenLabs STT WebSocket', async () => {
+    const connectPromise = service.connectSTT();
+    
+    // Find the 'open' callback and call it
+    const openCallback = mockOn.mock.calls.find(call => call[0] === 'open' && call[1] !== undefined)[1];
+    openCallback();
+
+    await expect(connectPromise).resolves.toBe(true);
+    expect(mockSend).toHaveBeenCalledWith(expect.stringContaining('xi_api_key'));
+  });
+
+  it('should emit transcript when STT message is received', async () => {
+    const connectPromise = service.connectSTT();
+    const openCallback = mockOn.mock.calls.find(call => call[0] === 'open')[1];
+    openCallback();
+    await connectPromise;
+
+    const messageCallback = mockOn.mock.calls.find(call => call[0] === 'message')[1];
+
+    let receivedTranscript: any = null;
+    service.on('transcript', (data) => {
+      receivedTranscript = data;
+    });
+
+    messageCallback(JSON.stringify({ text: 'Hello world', is_final: true }));
+    expect(receivedTranscript).toEqual({ text: 'Hello world', isFinal: true });
+  });
+
+  it('should stream user audio to STT', async () => {
+    const connectPromise = service.connectSTT();
+    const openCallback = mockOn.mock.calls.find(call => call[0] === 'open')[1];
+    openCallback();
+    await connectPromise;
+
+    const audioChunk = Buffer.from('test-audio');
+    service.handleUserAudio(audioChunk);
+    expect(mockSend).toHaveBeenCalledWith(audioChunk);
+  });
+
+  it('should send end of audio to STT', async () => {
+    const connectPromise = service.connectSTT();
+    const openCallback = mockOn.mock.calls.find(call => call[0] === 'open')[1];
+    openCallback();
+    await connectPromise;
+
+    service.sendEndOfAudio();
+    expect(mockSend).toHaveBeenCalledWith(expect.stringContaining('end_of_audio'));
+  });
+
   it('should connect to ElevenLabs TTS WebSocket', async () => {
     const connectPromise = service.connectTTS();
     
