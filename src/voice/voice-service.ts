@@ -12,6 +12,10 @@ export class VoiceService extends EventEmitter {
   private ttsWs: WebSocket | null = null;
   private sttWs: WebSocket | null = null;
   private config: VoiceConfig;
+  private isUserSpeaking = false;
+  private silenceThreshold = 1500; // ms
+  private silenceTimer: NodeJS.Timeout | null = null;
+  private energyThreshold = 0.01;
 
   constructor(config: VoiceConfig) {
     super();
@@ -102,12 +106,45 @@ export class VoiceService extends EventEmitter {
   // Handle user audio by streaming it to STT
   handleUserAudio(audioChunk: Buffer) {
     if (this.sttWs && this.sttWs.readyState === WebSocket.OPEN) {
-      // Send raw audio chunk to ElevenLabs STT
-      // The STT API expects binary data directly or wrapped in a JSON if metadata is needed.
-      // For streaming, we often send binary frames after the initial handshake.
       this.sttWs.send(audioChunk);
     }
+
+    // Simple energy-based VAD
+    const energy = this.calculateEnergy(audioChunk);
+    if (energy > this.energyThreshold) {
+      if (!this.isUserSpeaking) {
+        this.isUserSpeaking = true;
+        this.emit('user-started-speaking');
+        this.stopSpeaking(); // Interrupt system if user starts talking
+      }
+      this.resetSilenceTimer();
+    }
+
     this.emit('user-audio', audioChunk);
+  }
+
+  private calculateEnergy(chunk: Buffer): number {
+    // Basic energy calculation for PCM audio (assuming 16-bit mono)
+    let sum = 0;
+    for (let i = 0; i < chunk.length; i += 2) {
+      if (i + 1 < chunk.length) {
+        const sample = chunk.readInt16LE(i);
+        sum += (sample / 32768) * (sample / 32768);
+      }
+    }
+    return Math.sqrt(sum / (chunk.length / 2));
+  }
+
+  private resetSilenceTimer() {
+    if (this.silenceTimer) {
+      clearTimeout(this.silenceTimer);
+    }
+    this.silenceTimer = setTimeout(() => {
+      if (this.isUserSpeaking) {
+        this.isUserSpeaking = false;
+        this.emit('user-stopped-speaking');
+      }
+    }, this.silenceThreshold);
   }
 
   sendEndOfAudio() {

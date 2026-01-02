@@ -125,6 +125,41 @@ describe('VoiceService', () => {
     expect(mockSend).toHaveBeenCalledWith(JSON.stringify({ text: '' }));
   });
 
+  it('should detect when user starts speaking and interrupt', () => {
+    let interrupted = false;
+    let startedSpeaking = false;
+    service.on('interrupt', () => interrupted = true);
+    service.on('user-started-speaking', () => startedSpeaking = true);
+
+    // Create a buffer with high energy (simulated)
+    const highEnergyBuffer = Buffer.alloc(100);
+    for (let i = 0; i < highEnergyBuffer.length; i += 2) {
+      highEnergyBuffer.writeInt16LE(15000, i);
+    }
+
+    service.handleUserAudio(highEnergyBuffer);
+    expect(startedSpeaking).toBe(true);
+    expect(interrupted).toBe(true);
+  });
+
+  it('should detect when user stops speaking after silence', async () => {
+    vi.useFakeTimers();
+    let stoppedSpeaking = false;
+    service.on('user-stopped-speaking', () => stoppedSpeaking = true);
+
+    const highEnergyBuffer = Buffer.alloc(100);
+    for (let i = 0; i < highEnergyBuffer.length; i += 2) {
+      highEnergyBuffer.writeInt16LE(15000, i);
+    }
+
+    service.handleUserAudio(highEnergyBuffer);
+    expect(stoppedSpeaking).toBe(false);
+
+    vi.advanceTimersByTime(2000);
+    expect(stoppedSpeaking).toBe(true);
+    vi.useRealTimers();
+  });
+
   it('should emit interrupt when stopSpeaking is called', () => {
     let interrupted = false;
     service.on('interrupt', () => {
