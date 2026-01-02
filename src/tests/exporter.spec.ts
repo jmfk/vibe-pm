@@ -13,9 +13,11 @@ describe('Exporter', () => {
       goals: ['Goal 1'],
     },
     personas: [{ name: 'PM', description: 'Writes PRDs' }],
+    user_stories: [{ id: 'US-1', as_a: 'PM', i_want_to: 'record audio', so_that: 'I can multitask' }],
     requirements: {
       functional: [{ id: 'REQ-1', title: 'Voice', description: 'Voice input', priority: 'P0' }],
       non_functional: [],
+      ui_ux: [],
     },
     technical_constraints: ['Node.js'],
     success_metrics: ['Speed'],

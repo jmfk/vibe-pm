@@ -65,6 +65,7 @@ export class DiscoveryManager {
       status: 'Discovery',
       vision: { summary: '', goals: [] },
       personas: [],
+      user_stories: [],
       requirements: { functional: [], non_functional: [], ui_ux: [] },
       technical_constraints: [],
       success_metrics: [],

@@ -12,6 +12,13 @@ export const PersonaSchema = z.object({
   description: z.string(),
 });
 
+export const UserStorySchema = z.object({
+  id: z.string(),
+  as_a: z.string(),
+  i_want_to: z.string(),
+  so_that: z.string(),
+});
+
 export const ProductSchema = z.object({
   name: z.string(),
   version: z.string(),
@@ -21,6 +28,7 @@ export const ProductSchema = z.object({
     goals: z.array(z.string()),
   }),
   personas: z.array(PersonaSchema),
+  user_stories: z.array(UserStorySchema),
   requirements: z.object({
     functional: z.array(RequirementSchema),
     non_functional: z.array(RequirementSchema),
@@ -33,4 +41,5 @@ export const ProductSchema = z.object({
 export type Product = z.infer<typeof ProductSchema>;
 export type Requirement = z.infer<typeof RequirementSchema>;
 export type Persona = z.infer<typeof PersonaSchema>;
+export type UserStory = z.infer<typeof UserStorySchema>;
 

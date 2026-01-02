@@ -25,6 +25,7 @@ describe('ProductRepository', () => {
     personas: [
       { name: 'User A', description: 'Desc A' }
     ],
+    user_stories: [],
     requirements: {
       functional: [
         { id: 'REQ-001', title: 'Feature 1', description: 'Desc 1', priority: 'P0' }
