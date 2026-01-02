@@ -27,6 +27,8 @@ describe('Exporter', () => {
     const md = exporter.exportToMarkdown(mockProduct);
     expect(md).toContain('# PRD: Vibe PM');
     expect(md).toContain('## 1. Executive Summary');
+    expect(md).toContain('## 3. User Stories');
+    expect(md).toContain('**US-1**: As a PM');
     expect(md).toContain('REQ-1: Voice');
   });
 
